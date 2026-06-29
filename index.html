@@ -127,6 +127,105 @@
             margin-top: 2px;
         }
         
+        /* ===== ANNOUNCEMENT SECTION ===== */
+        .announcement-section {
+            background: #111827;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .announcement-section .announcement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .announcement-section .announcement-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .announcement-section textarea {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-size: 14px;
+            min-height: 100px;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+            margin-bottom: 12px;
+        }
+        
+        .announcement-section textarea:focus {
+            border-color: #f59e0b;
+        }
+        
+        .announcement-section .announcement-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .announcement-section .announcement-actions button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+        
+        .announcement-section .announcement-actions button:active {
+            transform: scale(0.96);
+        }
+        
+        .btn-send {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .btn-send:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-clear {
+            background: rgba(255,255,255,0.08);
+            color: #94a3b8;
+        }
+        
+        .btn-clear:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .announcement-status {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .announcement-status.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .announcement-status.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
         /* ===== GOAL SECTION ===== */
         .goal-section {
             background: #111827;
@@ -354,6 +453,8 @@
         @media (max-width: 768px) {
             .stats-grid { grid-template-columns: repeat(3, 1fr); }
             .goal-section .goal-stats { grid-template-columns: 1fr; }
+            .announcement-section .announcement-actions { flex-direction: column; }
+            .announcement-section .announcement-actions button { width: 100%; }
         }
         
         @media (max-width: 480px) {
@@ -423,6 +524,20 @@
                     <div class="label">Goal Progress</div>
                     <div class="sub-label">10,000/week</div>
                 </div>
+            </div>
+            
+            <!-- ===== ANNOUNCEMENT SECTION ===== -->
+            <div class="announcement-section">
+                <div class="announcement-header">
+                    <span class="announcement-title">📢 Send Announcement</span>
+                    <span style="font-size:12px; color:#64748b;">Message will be sent to all users</span>
+                </div>
+                <textarea id="announcementInput" placeholder="Type your announcement message here..."></textarea>
+                <div class="announcement-actions">
+                    <button class="btn-send" onclick="sendAnnouncement()">📤 Send to All Users</button>
+                    <button class="btn-clear" onclick="clearAnnouncement()">🗑️ Clear</button>
+                </div>
+                <div class="announcement-status" id="announcementStatus"></div>
             </div>
             
             <!-- Goal Section -->
@@ -524,6 +639,84 @@
         
         function updateTime() {
             document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
+        }
+        
+        // ============================================================
+        // 📢 SEND ANNOUNCEMENT
+        // ============================================================
+        async function sendAnnouncement() {
+            var message = document.getElementById('announcementInput').value.trim();
+            var statusEl = document.getElementById('announcementStatus');
+            
+            // Validate message
+            if (!message) {
+                statusEl.className = 'announcement-status error';
+                statusEl.textContent = '❌ Please enter a message.';
+                return;
+            }
+            
+            // Show sending status
+            statusEl.className = 'announcement-status';
+            statusEl.style.display = 'block';
+            statusEl.style.background = 'rgba(59, 130, 246, 0.15)';
+            statusEl.style.color = '#3b82f6';
+            statusEl.style.border = '1px solid rgba(59, 130, 246, 0.2)';
+            statusEl.textContent = '📤 Sending announcement to all users...';
+            
+            try {
+                // Get all users
+                var snapshot = await db.collection('users').get();
+                var users = [];
+                snapshot.forEach(function(doc) {
+                    users.push(doc.id);
+                });
+                
+                if (users.length === 0) {
+                    statusEl.className = 'announcement-status error';
+                    statusEl.textContent = '❌ No users found. Share your app first!';
+                    return;
+                }
+                
+                // Create announcement document in Firebase
+                var announcementData = {
+                    message: message,
+                    sentBy: 'Admin',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userIds: users,
+                    totalUsers: users.length
+                };
+                
+                await db.collection('announcements').add(announcementData);
+                
+                // Also store in each user's document for easy access
+                var batch = db.batch();
+                users.forEach(function(userId) {
+                    var userRef = db.collection('users').doc(userId);
+                    batch.update(userRef, {
+                        'announcements': firebase.firestore.FieldValue.arrayUnion({
+                            message: message,
+                            timestamp: new Date().toISOString(),
+                            read: false
+                        })
+                    });
+                });
+                await batch.commit();
+                
+                // Success!
+                statusEl.className = 'announcement-status success';
+                statusEl.textContent = '✅ Announcement sent to ' + users.length + ' users!';
+                document.getElementById('announcementInput').value = '';
+                
+            } catch (error) {
+                console.error('Error sending announcement:', error);
+                statusEl.className = 'announcement-status error';
+                statusEl.textContent = '❌ Error sending announcement. Please try again.';
+            }
+        }
+        
+        function clearAnnouncement() {
+            document.getElementById('announcementInput').value = '';
+            document.getElementById('announcementStatus').style.display = 'none';
         }
         
         // ============================================================
