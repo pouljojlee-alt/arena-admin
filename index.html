@@ -418,6 +418,7 @@
                 </div>
             </div>
             
+            <!-- ===== ANNOUNCEMENT SECTION ===== -->
             <div class="announcement-section">
                 <div class="announcement-header">
                     <span class="announcement-title">📢 Send Announcement</span>
@@ -491,19 +492,10 @@
         firebase.initializeApp(firebaseConfig);
         var db = firebase.firestore();
         
-        // Enable offline persistence
-        db.enablePersistence().catch(function(err) {
-            console.log('Firebase persistence error:', err);
-        });
-        
         // ============================================================
         // 🔐 ADMIN PASSWORD
         // ============================================================
         var ADMIN_PASSWORD = "password123";
-        
-        // ============================================================
-        // 🎯 WEEKLY GOAL - CHANGED TO 200,000
-        // ============================================================
         var WEEKLY_GOAL = 200000;
         
         // ============================================================
@@ -538,7 +530,7 @@
         }
         
         // ============================================================
-        // 📢 SEND ANNOUNCEMENT
+        // 📢 SEND ANNOUNCEMENT - FIXED
         // ============================================================
         async function sendAnnouncement() {
             var message = document.getElementById('announcementInput').value.trim();
@@ -554,10 +546,14 @@
             statusEl.textContent = '📤 Sending announcement to all users...';
             
             try {
+                // Get all users
                 var snapshot = await db.collection('users').get();
                 var users = [];
                 snapshot.forEach(function(doc) {
-                    users.push(doc.id);
+                    users.push({
+                        id: doc.id,
+                        data: doc.data()
+                    });
                 });
                 
                 if (users.length === 0) {
@@ -566,7 +562,24 @@
                     return;
                 }
                 
-                // Store in announcements collection
+                // Create announcement object
+                var announcement = {
+                    message: message,
+                    timestamp: new Date().toISOString(),
+                    read: false
+                };
+                
+                // Add to each user's document
+                var batch = db.batch();
+                users.forEach(function(user) {
+                    var userRef = db.collection('users').doc(user.id);
+                    batch.update(userRef, {
+                        'announcements': firebase.firestore.FieldValue.arrayUnion(announcement)
+                    });
+                });
+                await batch.commit();
+                
+                // Also store in global announcements collection
                 await db.collection('announcements').add({
                     message: message,
                     sentBy: 'Admin',
@@ -574,28 +587,17 @@
                     totalUsers: users.length
                 });
                 
-                // Add to each user
-                var batch = db.batch();
-                users.forEach(function(userId) {
-                    var userRef = db.collection('users').doc(userId);
-                    batch.update(userRef, {
-                        'announcements': firebase.firestore.FieldValue.arrayUnion({
-                            message: message,
-                            timestamp: new Date().toISOString(),
-                            read: false
-                        })
-                    });
-                });
-                await batch.commit();
-                
                 statusEl.className = 'announcement-status success';
                 statusEl.textContent = '✅ Announcement sent to ' + users.length + ' users!';
                 document.getElementById('announcementInput').value = '';
                 
+                // Reload data to show updated stats
+                setTimeout(loadAllData, 2000);
+                
             } catch (error) {
                 console.error('Error sending announcement:', error);
                 statusEl.className = 'announcement-status error';
-                statusEl.textContent = '❌ Error sending announcement. Please try again.';
+                statusEl.textContent = '❌ Error: ' + error.message;
             }
         }
         
@@ -642,7 +644,8 @@
                         today: todayCount,
                         points: data.points || 0,
                         rank: data.rank || '--',
-                        createdAt: data.createdAt
+                        createdAt: data.createdAt,
+                        announcements: data.announcements || []
                     });
                 });
                 
@@ -653,7 +656,6 @@
                 document.getElementById('totalPoints').textContent = totalPoints.toLocaleString();
                 document.getElementById('weeklyAds').textContent = weeklyTotal;
                 
-                // Calculate progress toward 200,000
                 var progressPercent = Math.min((weeklyTotal / WEEKLY_GOAL) * 100, 100);
                 document.getElementById('goalProgress').textContent = Math.round(progressPercent) + '%';
                 document.getElementById('goalCurrent').textContent = weeklyTotal;
@@ -676,17 +678,17 @@
                 }
                 document.getElementById('goalPercentLabel').textContent = Math.round(progressPercent) + '%';
                 
-                var html = '<table><thead><tr><th>User</th><th>Today</th><th>Weekly</th><th>Total Ads</th><th>Points</th><th>Rank</th><th>Status</th></tr></thead><tbody>';
+                var html = '<table><thead><tr><th>User</th><th>Today</th><th>Weekly</th><th>Total Ads</th><th>Points</th><th>Rank</th><th>Announcements</th></tr></thead><tbody>';
                 
                 var count = 0;
                 userData.forEach(function(user) {
                     count++;
-                    var percent = user.weekly > 0 ? Math.round((user.weekly / WEEKLY_GOAL) * 100) : 0;
-                    var statusClass = percent >= 100 ? 'reached' : (percent >= 50 ? 'partial' : 'far');
-                    var statusText = percent >= 100 ? '✅ Goal Met' : (percent >= 50 ? '📈 Progress' : '⏳ Starting');
                     var firstLetter = user.displayName.charAt(0).toUpperCase();
+                    var annCount = user.announcements ? user.announcements.length : 0;
+                    var annUnread = user.announcements ? user.announcements.filter(function(a) { return !a.read; }).length : 0;
+                    var annDisplay = annCount > 0 ? annCount + ' (' + annUnread + ' unread)' : '0';
                     
-                    html += '<tr><td><span class="user-avatar">' + firstLetter + '</span>' + user.displayName + '</td><td>' + user.today + '</td><td>' + user.weekly + '</td><td>' + user.ads + '</td><td style="color:#f59e0b; font-weight:600;">' + user.points.toLocaleString() + '</td><td><span class="rank-badge">#' + user.rank + '</span></td><td><span class="goal-badge ' + statusClass + '">' + statusText + '</span></td></tr>';
+                    html += '<tr><td><span class="user-avatar">' + firstLetter + '</span>' + user.displayName + '</td><td>' + user.today + '</td><td>' + user.weekly + '</td><td>' + user.ads + '</td><td style="color:#f59e0b; font-weight:600;">' + user.points.toLocaleString() + '</td><td><span class="rank-badge">#' + user.rank + '</span></td><td>' + annDisplay + '</td></tr>';
                 });
                 
                 html += '</tbody></table>';
@@ -701,7 +703,7 @@
                 
             } catch (error) {
                 console.error('Error loading admin data:', error);
-                document.getElementById('userList').innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">⚠️ Error loading data. Please refresh.</div>';
+                document.getElementById('userList').innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">⚠️ Error loading data: ' + error.message + '</div>';
             }
         }
         
