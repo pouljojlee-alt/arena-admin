@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena Admin Panel</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <style>
+        /* ===== RESET ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e17;
+            color: #f1f5f9;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 16px 24px;
+            background: #111827;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-right .time {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        
+        .refresh-btn {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .refresh-btn:hover { background: #2563eb; }
+        
+        .logout-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.3); }
+        
+        /* ===== STATS GRID ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: #111827;
+            border-radius: 16px;
+            padding: 18px 16px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .stat-card .icon { font-size: 24px; margin-bottom: 6px; }
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f59e0b;
+            margin-bottom: 2px;
+        }
+        .stat-card .value.green { color: #10b981; }
+        .stat-card .value.blue { color: #3b82f6; }
+        .stat-card .value.purple { color: #8b5cf6; }
+        .stat-card .value.red { color: #ef4444; }
+        .stat-card .label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card .sub-label {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        
+        /* ===== GOAL SECTION ===== */
+        .goal-section {
+            background: #111827;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .goal-section .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .goal-section .goal-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .goal-section .goal-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        
+        .goal-stat {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+        
+        .goal-stat .value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #f59e0b;
+        }
+        
+        .goal-stat .value.green { color: #10b981; }
+        .goal-stat .value.red { color: #ef4444; }
+        .goal-stat .label {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        /* ===== PROGRESS BAR ===== */
+        .progress-track {
+            width: 100%;
+            height: 10px;
+            background: #1e293b;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 12px 0 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        
+        .progress-fill.done { background: linear-gradient(90deg, #10b981, #059669); }
+        
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        
+        .progress-labels .done { color: #10b981; font-weight: 600; }
+        
+        /* ===== USER TABLE ===== */
+        .user-table {
+            background: #111827;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .user-table .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .user-table .table-header h3 { font-size: 18px; font-weight: 600; }
+        .user-table .table-header .count {
+            font-size: 14px;
+            color: #94a3b8;
+            background: #1e293b;
+            padding: 4px 14px;
+            border-radius: 20px;
+        }
+        
+        .table-wrapper { overflow-x: auto; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table th {
+            text-align: left;
+            padding: 10px 12px;
+            color: #94a3b8;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #1e293b;
+        }
+        
+        table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #1e293b;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+        
+        table tr:hover td { background: #1e293b; }
+        table tr:last-child td { border-bottom: none; }
+        
+        .user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 13px;
+            color: white;
+            margin-right: 8px;
+        }
+        
+        .rank-badge {
+            background: #f59e0b;
+            color: #0a0e17;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .goal-badge {
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .goal-badge.reached { background: #10b981; color: white; }
+        .goal-badge.partial { background: #f59e0b; color: #0a0e17; }
+        .goal-badge.far { background: #ef4444; color: white; }
+        
+        /* ===== LOADING ===== */
+        .loading { text-align: center; padding: 40px 0; color: #64748b; }
+        .loading .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #1e293b;
+            border-top: 3px solid #f59e0b;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* ===== LOGIN SCREEN ===== */
+        .login-screen {
+            max-width: 400px;
+            margin: 100px auto;
+            background: #111827;
+            border-radius: 24px;
+            padding: 40px 30px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .login-screen h2 { font-size: 24px; margin-bottom: 8px; }
+        .login-screen p { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+        
+        .login-screen input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 16px;
+            outline: none;
+        }
+        
+        .login-screen input:focus { border-color: #f59e0b; }
+        
+        .login-screen button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .login-screen .error {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 12px;
+            display: none;
+        }
+        
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+            .goal-section .goal-stats { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 480px) {
+            body { padding: 12px; }
+            .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+            .header-right { width: 100%; justify-content: space-between; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stat-card { padding: 12px; }
+            .stat-card .value { font-size: 20px; }
+            .user-table { padding: 12px; }
+            table th, table td { padding: 6px 8px; font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container" id="adminContainer">
+        <!-- ===== LOGIN SCREEN ===== -->
+        <div class="login-screen" id="loginScreen">
+            <div style="font-size: 48px; margin-bottom: 12px;">🔐</div>
+            <h2>Admin Login</h2>
+            <p>Enter your admin password to access the dashboard</p>
+            <input type="password" id="adminPassword" placeholder="Enter password..." onkeydown="if(event.key==='Enter') login()">
+            <button onclick="login()">Login</button>
+            <div class="error" id="loginError">❌ Incorrect password. Please try again.</div>
+        </div>
+        
+        <!-- ===== DASHBOARD ===== -->
+        <div id="dashboardContent" style="display: none;">
+            <!-- Header -->
+            <div class="header">
+                <h1>🏟️ ARENA Admin</h1>
+                <div class="header-right">
+                    <span class="time" id="currentTime"></span>
+                    <button class="refresh-btn" onclick="loadAllData()">🔄 Refresh</button>
+                    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="icon">👥</div>
+                    <div class="value" id="totalUsers">0</div>
+                    <div class="label">Total Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">👁️</div>
+                    <div class="value green" id="totalAds">0</div>
+                    <div class="label">Total Ads</div>
+                    <div class="sub-label">All Time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">⭐</div>
+                    <div class="value blue" id="totalPoints">0</div>
+                    <div class="label">Total Points</div>
+                    <div class="sub-label">Given Out</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">📊</div>
+                    <div class="value purple" id="weeklyAds">0</div>
+                    <div class="label">Weekly Ads</div>
+                    <div class="sub-label">This Week</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🎯</div>
+                    <div class="value red" id="goalProgress">0%</div>
+                    <div class="label">Goal Progress</div>
+                    <div class="sub-label">10,000/week</div>
+                </div>
+            </div>
+            
+            <!-- Goal Section -->
+            <div class="goal-section">
+                <div class="goal-header">
+                    <span class="goal-title">🎯 Weekly Goal Tracker</span>
+                    <span style="font-size:14px; color:#94a3b8;">Target: <strong style="color:#f59e0b;">10,000</strong> ads/week</span>
+                </div>
+                
+                <div class="goal-stats">
+                    <div class="goal-stat">
+                        <div class="value" id="goalCurrent">0</div>
+                        <div class="label">Ads This Week</div>
+                    </div>
+                    <div class="goal-stat">
+                        <div class="value green" id="goalRemaining">10,000</div>
+                        <div class="label">Remaining</div>
+                    </div>
+                    <div class="goal-stat">
+                        <div class="value" id="goalDailyAvg">0</div>
+                        <div class="label">Daily Average</div>
+                    </div>
+                </div>
+                
+                <div class="progress-track">
+                    <div class="progress-fill" id="goalProgressBar"></div>
+                </div>
+                <div class="progress-labels">
+                    <span id="goalPercentLabel">0%</span>
+                    <span id="goalStatusLabel" style="color:#64748b;">🚀 Keep going!</span>
+                </div>
+            </div>
+            
+            <!-- User Table -->
+            <div class="user-table">
+                <div class="table-header">
+                    <h3>👤 Recent Users</h3>
+                    <span class="count" id="userCount">0 users</span>
+                </div>
+                <div class="table-wrapper">
+                    <div id="userList">
+                        <div class="loading"><div class="spinner"></div>Loading users...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 🔥 FIREBASE CONFIG
+        // ============================================================
+        var firebaseConfig = {
+            apiKey: "AIzaSyAUqpShBzjFHn-HVpwU4dx28TLQjuoa-FU",
+            authDomain: "ads-arena-acfd0.firebaseapp.com",
+            databaseURL: "https://ads-arena-acfd0-default-rtdb.firebaseio.com",
+            projectId: "ads-arena-acfd0",
+            storageBucket: "ads-arena-acfd0.firebasestorage.app",
+            messagingSenderId: "344616959512",
+            appId: "1:344616959512:web:6cad996e08b76a5ed94d6d",
+            measurementId: "G-PCPN7MG7ZG"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.firestore();
+        
+        // ============================================================
+        // 🔐 ADMIN PASSWORD
+        // ============================================================
+        var ADMIN_PASSWORD = "password123";
+        var WEEKLY_GOAL = 10000;
+        
+        // ============================================================
+        // 🔑 LOGIN
+        // ============================================================
+        function login() {
+            var password = document.getElementById('adminPassword').value;
+            var errorEl = document.getElementById('loginError');
+            
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'block';
+                loadAllData();
+                updateTime();
+                setInterval(updateTime, 1000);
+                setInterval(loadAllData, 60000); // Auto-refresh every minute
+            } else {
+                errorEl.style.display = 'block';
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminPassword').focus();
+            }
+        }
+        
+        function logout() {
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('dashboardContent').style.display = 'none';
+            document.getElementById('adminPassword').value = '';
+        }
+        
+        function updateTime() {
+            document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
+        }
+        
+        // ============================================================
+        // 📊 LOAD ALL DATA
+        // ============================================================
+        async function loadAllData() {
+            try {
+                var snapshot = await db.collection('users').get();
+                
+                var totalUsers = 0;
+                var totalAds = 0;
+                var totalPoints = 0;
+                var weeklyTotal = 0;
+                var weekKey = getWeekKey();
+                
+                var userData = [];
+                
+                snapshot.forEach(function(doc) {
+                    var data = doc.data();
+                    totalUsers++;
+                    totalAds += data.allTimeAds || 0;
+                    totalPoints += data.points || 0;
+                    
+                    var weeklyAds = data.weeklyAds || {};
+                    var userWeekly = weeklyAds[weekKey] || 0;
+                    weeklyTotal += userWeekly;
+                    
+                    var dailyAds = data.dailyAds || {};
+                    var todayKey = new Date().toISOString().split('T')[0];
+                    var todayCount = dailyAds[todayKey] || 0;
+                    
+                    userData.push({
+                        id: doc.id,
+                        displayName: data.displayName || 'Player',
+                        ads: data.allTimeAds || 0,
+                        weekly: userWeekly,
+                        today: todayCount,
+                        points: data.points || 0,
+                        rank: data.rank || '--',
+                        createdAt: data.createdAt
+                    });
+                });
+                
+                // Sort by points for ranking
+                userData.sort(function(a, b) { return b.points - a.points; });
+                
+                // Update stats
+                document.getElementById('totalUsers').textContent = totalUsers;
+                document.getElementById('totalAds').textContent = totalAds;
+                document.getElementById('totalPoints').textContent = totalPoints.toLocaleString();
+                document.getElementById('weeklyAds').textContent = weeklyTotal;
+                
+                // Goal progress
+                var progressPercent = Math.min((weeklyTotal / WEEKLY_GOAL) * 100, 100);
+                document.getElementById('goalProgress').textContent = Math.round(progressPercent) + '%';
+                document.getElementById('goalCurrent').textContent = weeklyTotal;
+                document.getElementById('goalRemaining').textContent = Math.max(WEEKLY_GOAL - weeklyTotal, 0).toLocaleString();
+                
+                // Daily average (week so far)
+                var dayOfWeek = new Date().getDay() + 1;
+                var avg = Math.round(weeklyTotal / dayOfWeek) || 0;
+                document.getElementById('goalDailyAvg').textContent = avg;
+                
+                // Progress bar
+                var bar = document.getElementById('goalProgressBar');
+                bar.style.width = progressPercent + '%';
+                if (progressPercent >= 100) {
+                    bar.className = 'progress-fill done';
+                    document.getElementById('goalStatusLabel').textContent = '🎉 GOAL REACHED! Amazing!';
+                    document.getElementById('goalStatusLabel').className = 'progress-labels done';
+                } else {
+                    bar.className = 'progress-fill';
+                    document.getElementById('goalStatusLabel').textContent = '🚀 ' + Math.round(progressPercent) + '% complete';
+                    document.getElementById('goalStatusLabel').className = 'progress-labels';
+                }
+                document.getElementById('goalPercentLabel').textContent = Math.round(progressPercent) + '%';
+                
+                // User table
+                var html = '<table><thead><tr><th>User</th><th>Today</th><th>Weekly</th><th>Total Ads</th><th>Points</th><th>Rank</th><th>Status</th></tr></thead><tbody>';
+                
+                var count = 0;
+                userData.forEach(function(user) {
+                    count++;
+                    var percent = user.weekly > 0 ? Math.round((user.weekly / WEEKLY_GOAL) * 100) : 0;
+                    var statusClass = percent >= 100 ? 'reached' : (percent >= 50 ? 'partial' : 'far');
+                    var statusText = percent >= 100 ? '✅ Goal Met' : (percent >= 50 ? '📈 Progress' : '⏳ Starting');
+                    var firstLetter = user.displayName.charAt(0).toUpperCase();
+                    
+                    html += '<tr><td><span class="user-avatar">' + firstLetter + '</span>' + user.displayName + '</td><td>' + user.today + '</td><td>' + user.weekly + '</td><td>' + user.ads + '</td><td style="color:#f59e0b; font-weight:600;">' + user.points.toLocaleString() + '</td><td><span class="rank-badge">#' + user.rank + '</span></td><td><span class="goal-badge ' + statusClass + '">' + statusText + '</span></td></tr>';
+                });
+                
+                html += '</tbody></table>';
+                
+                if (count === 0) {
+                    html = '<div class="loading"><div style="font-size:48px; margin-bottom:12px;">👀</div>No users yet.<br>Share your app to get started!</div>';
+                }
+                
+                document.getElementById('userList').innerHTML = html;
+                document.getElementById('userCount').textContent = count + ' users';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('userList').innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">⚠️ Error loading data. Please refresh.</div>';
+            }
+        }
+        
+        // ============================================================
+        // 📅 GET WEEK KEY
+        // ============================================================
+        function getWeekKey() {
+            var now = new Date();
+            var startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            return startOfWeek.toISOString().split('T')[0];
+        }
+    </script>
+</body>
+</html>
