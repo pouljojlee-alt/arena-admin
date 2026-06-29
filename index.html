@@ -174,7 +174,6 @@
             color: #94a3b8;
         }
         
-        /* ===== PROGRESS BAR ===== */
         .progress-track {
             width: 100%;
             height: 10px;
@@ -509,7 +508,7 @@
                 loadAllData();
                 updateTime();
                 setInterval(updateTime, 1000);
-                setInterval(loadAllData, 60000); // Auto-refresh every minute
+                setInterval(loadAllData, 60000);
             } else {
                 errorEl.style.display = 'block';
                 document.getElementById('adminPassword').value = '';
@@ -568,27 +567,22 @@
                     });
                 });
                 
-                // Sort by points for ranking
                 userData.sort(function(a, b) { return b.points - a.points; });
                 
-                // Update stats
                 document.getElementById('totalUsers').textContent = totalUsers;
                 document.getElementById('totalAds').textContent = totalAds;
                 document.getElementById('totalPoints').textContent = totalPoints.toLocaleString();
                 document.getElementById('weeklyAds').textContent = weeklyTotal;
                 
-                // Goal progress
                 var progressPercent = Math.min((weeklyTotal / WEEKLY_GOAL) * 100, 100);
                 document.getElementById('goalProgress').textContent = Math.round(progressPercent) + '%';
                 document.getElementById('goalCurrent').textContent = weeklyTotal;
                 document.getElementById('goalRemaining').textContent = Math.max(WEEKLY_GOAL - weeklyTotal, 0).toLocaleString();
                 
-                // Daily average (week so far)
                 var dayOfWeek = new Date().getDay() + 1;
                 var avg = Math.round(weeklyTotal / dayOfWeek) || 0;
                 document.getElementById('goalDailyAvg').textContent = avg;
                 
-                // Progress bar
                 var bar = document.getElementById('goalProgressBar');
                 bar.style.width = progressPercent + '%';
                 if (progressPercent >= 100) {
@@ -602,7 +596,6 @@
                 }
                 document.getElementById('goalPercentLabel').textContent = Math.round(progressPercent) + '%';
                 
-                // User table
                 var html = '<table><thead><tr><th>User</th><th>Today</th><th>Weekly</th><th>Total Ads</th><th>Points</th><th>Rank</th><th>Status</th></tr></thead><tbody>';
                 
                 var count = 0;
