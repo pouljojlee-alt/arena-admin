@@ -418,7 +418,6 @@
                 </div>
             </div>
             
-            <!-- ===== ANNOUNCEMENT SECTION ===== -->
             <div class="announcement-section">
                 <div class="announcement-header">
                     <span class="announcement-title">📢 Send Announcement</span>
@@ -476,19 +475,18 @@
 
     <script>
         // ============================================================
-        // 🔥 FIREBASE CONFIG
+        // 🔥 FIREBASE CONFIG - YOUR NEW CONFIG
         // ============================================================
         var firebaseConfig = {
-            apiKey: "AIzaSyAUqpShBzjFHn-HVpwU4dx28TLQjuoa-FU",
-            authDomain: "ads-arena-acfd0.firebaseapp.com",
-            databaseURL: "https://ads-arena-acfd0-default-rtdb.firebaseio.com",
-            projectId: "ads-arena-acfd0",
-            storageBucket: "ads-arena-acfd0.firebasestorage.app",
-            messagingSenderId: "344616959512",
-            appId: "1:344616959512:web:6cad996e08b76a5ed94d6d",
-            measurementId: "G-PCPN7MG7ZG"
+            apiKey: "AIzaSyA-2MtPZhZt9Oewn4V6AlBiS7TKMPdEatI",
+            authDomain: "ads-arena-new.firebaseapp.com",
+            projectId: "ads-arena-new",
+            storageBucket: "ads-arena-new.firebasestorage.app",
+            messagingSenderId: "840454017440",
+            appId: "1:840454017440:web:6188686fa96a1d28a414c5"
         };
         
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         var db = firebase.firestore();
         
@@ -530,7 +528,7 @@
         }
         
         // ============================================================
-        // 📢 SEND ANNOUNCEMENT - FIXED
+        // 📢 SEND ANNOUNCEMENT
         // ============================================================
         async function sendAnnouncement() {
             var message = document.getElementById('announcementInput').value.trim();
@@ -546,7 +544,6 @@
             statusEl.textContent = '📤 Sending announcement to all users...';
             
             try {
-                // Get all users
                 var snapshot = await db.collection('users').get();
                 var users = [];
                 snapshot.forEach(function(doc) {
@@ -562,14 +559,12 @@
                     return;
                 }
                 
-                // Create announcement object
                 var announcement = {
                     message: message,
                     timestamp: new Date().toISOString(),
                     read: false
                 };
                 
-                // Add to each user's document
                 var batch = db.batch();
                 users.forEach(function(user) {
                     var userRef = db.collection('users').doc(user.id);
@@ -579,7 +574,6 @@
                 });
                 await batch.commit();
                 
-                // Also store in global announcements collection
                 await db.collection('announcements').add({
                     message: message,
                     sentBy: 'Admin',
@@ -590,8 +584,6 @@
                 statusEl.className = 'announcement-status success';
                 statusEl.textContent = '✅ Announcement sent to ' + users.length + ' users!';
                 document.getElementById('announcementInput').value = '';
-                
-                // Reload data to show updated stats
                 setTimeout(loadAllData, 2000);
                 
             } catch (error) {
