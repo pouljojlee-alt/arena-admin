@@ -4,305 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arena Admin Panel</title>
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0a0e17;
             color: #f1f5f9;
-            padding: 20px;
+            padding: 16px;
             min-height: 100vh;
         }
         .admin-container { max-width: 1200px; margin: 0 auto; }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            padding: 16px 24px;
-            background: #111827;
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #f59e0b, #ef4444);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .header-right { display: flex; align-items: center; gap: 12px; }
-        .header-right .time { font-size: 14px; color: #94a3b8; }
-        .refresh-btn {
-            background: #3b82f6;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .refresh-btn:hover { background: #2563eb; }
-        .logout-btn {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #ef4444;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        .logout-btn:hover { background: rgba(239, 68, 68, 0.3); }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .stat-card {
-            background: #111827;
-            border-radius: 16px;
-            padding: 18px 16px;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .stat-card .icon { font-size: 24px; margin-bottom: 6px; }
-        .stat-card .value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #f59e0b;
-            margin-bottom: 2px;
-        }
-        .stat-card .value.green { color: #10b981; }
-        .stat-card .value.blue { color: #3b82f6; }
-        .stat-card .value.purple { color: #8b5cf6; }
-        .stat-card .value.red { color: #ef4444; }
-        .stat-card .label {
-            font-size: 12px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .stat-card .sub-label { font-size: 11px; color: #64748b; margin-top: 2px; }
-        
-        .announcement-section {
-            background: #111827;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .announcement-section .announcement-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .announcement-section .announcement-title { font-size: 16px; font-weight: 600; }
-        .announcement-section textarea {
-            width: 100%;
-            padding: 14px;
-            border-radius: 12px;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: white;
-            font-size: 14px;
-            min-height: 100px;
-            resize: vertical;
-            outline: none;
-            font-family: inherit;
-            margin-bottom: 12px;
-        }
-        .announcement-section textarea:focus { border-color: #f59e0b; }
-        .announcement-section .announcement-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-        .announcement-section .announcement-actions button {
-            padding: 10px 24px;
-            border: none;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-send { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
-        .btn-send:hover { opacity: 0.9; }
-        .btn-clear { background: rgba(255,255,255,0.08); color: #94a3b8; }
-        .btn-clear:hover { background: rgba(255,255,255,0.15); }
-        .announcement-status {
-            margin-top: 12px;
-            padding: 12px;
-            border-radius: 10px;
-            display: none;
-        }
-        .announcement-status.success {
-            display: block;
-            background: rgba(16, 185, 129, 0.15);
-            color: #10b981;
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-        .announcement-status.error {
-            display: block;
-            background: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-        .announcement-status.loading {
-            display: block;
-            background: rgba(59, 130, 246, 0.15);
-            color: #3b82f6;
-            border: 1px solid rgba(59, 130, 246, 0.2);
-        }
-        
-        .goal-section {
-            background: #111827;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .goal-section .goal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .goal-section .goal-title { font-size: 16px; font-weight: 600; }
-        .goal-section .goal-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-        }
-        .goal-stat {
-            background: #1e293b;
-            border-radius: 12px;
-            padding: 14px;
-            text-align: center;
-        }
-        .goal-stat .value {
-            font-size: 22px;
-            font-weight: 700;
-            color: #f59e0b;
-        }
-        .goal-stat .value.green { color: #10b981; }
-        .goal-stat .value.red { color: #ef4444; }
-        .goal-stat .label { font-size: 12px; color: #94a3b8; }
-        
-        .progress-track {
-            width: 100%;
-            height: 10px;
-            background: #1e293b;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 12px 0 8px;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #f59e0b, #ef4444);
-            border-radius: 10px;
-            transition: width 0.5s ease;
-            width: 0%;
-        }
-        .progress-fill.done { background: linear-gradient(90deg, #10b981, #059669); }
-        .progress-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #94a3b8;
-        }
-        .progress-labels .done { color: #10b981; font-weight: 600; }
-        
-        .user-table {
-            background: #111827;
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .user-table .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        .user-table .table-header h3 { font-size: 18px; font-weight: 600; }
-        .user-table .table-header .count {
-            font-size: 14px;
-            color: #94a3b8;
-            background: #1e293b;
-            padding: 4px 14px;
-            border-radius: 20px;
-        }
-        .table-wrapper { overflow-x: auto; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        table th {
-            text-align: left;
-            padding: 10px 12px;
-            color: #94a3b8;
-            font-size: 11px;
-            text-transform: uppercase;
-            border-bottom: 2px solid #1e293b;
-        }
-        table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #1e293b;
-            font-size: 13px;
-            color: #e2e8f0;
-        }
-        table tr:hover td { background: #1e293b; }
-        table tr:last-child td { border-bottom: none; }
-        .user-avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 13px;
-            color: white;
-            margin-right: 8px;
-        }
-        .rank-badge {
-            background: #f59e0b;
-            color: #0a0e17;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .goal-badge {
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .goal-badge.reached { background: #10b981; color: white; }
-        .goal-badge.partial { background: #f59e0b; color: #0a0e17; }
-        .goal-badge.far { background: #ef4444; color: white; }
-        
-        .loading { text-align: center; padding: 40px 0; color: #64748b; }
-        .loading .spinner {
-            width: 36px;
-            height: 36px;
-            border: 3px solid #1e293b;
-            border-top: 3px solid #f59e0b;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 12px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
         
         .login-screen {
             max-width: 400px;
@@ -338,45 +52,425 @@
             font-weight: 600;
             cursor: pointer;
         }
-        .login-screen .error {
+        .login-screen .error { color: #ef4444; font-size: 14px; margin-top: 12px; display: none; }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 14px 20px;
+            background: #111827;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .header-right .time { font-size: 13px; color: #94a3b8; }
+        .refresh-btn {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .refresh-btn:hover { background: #2563eb; }
+        .logout-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
             color: #ef4444;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.3); }
+        
+        .dashboard-layout { display: flex; gap: 20px; }
+        .sidebar {
+            width: 200px;
+            flex-shrink: 0;
+            background: #111827;
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+            height: fit-content;
+        }
+        .sidebar .menu-item {
+            display: block;
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            border-radius: 10px;
+            text-align: left;
+            cursor: pointer;
             font-size: 14px;
-            margin-top: 12px;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+            margin-bottom: 2px;
+        }
+        .sidebar .menu-item:hover { background: #1e293b; color: #e2e8f0; }
+        .sidebar .menu-item.active { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .sidebar .menu-item .icon { margin-right: 10px; }
+        .sidebar .menu-item.logout-item { color: #ef4444; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
+        .sidebar .menu-item.logout-item:hover { background: rgba(239, 68, 68, 0.15); }
+        .main-content { flex: 1; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #111827;
+            border-radius: 14px;
+            padding: 16px 14px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-card .icon { font-size: 22px; margin-bottom: 4px; }
+        .stat-card .value { font-size: 24px; font-weight: 700; color: #f59e0b; }
+        .stat-card .value.green { color: #10b981; }
+        .stat-card .value.blue { color: #3b82f6; }
+        .stat-card .value.purple { color: #8b5cf6; }
+        .stat-card .value.red { color: #ef4444; }
+        .stat-card .label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px; }
+        .stat-card .sub-label { font-size: 10px; color: #64748b; }
+        
+        .announcement-section {
+            background: #111827;
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .announcement-section .announcement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .announcement-section .announcement-title { font-size: 16px; font-weight: 600; }
+        .announcement-section textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-size: 14px;
+            min-height: 80px;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+            margin-bottom: 10px;
+        }
+        .announcement-section textarea:focus { border-color: #f59e0b; }
+        .announcement-section .announcement-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .announcement-section .announcement-actions button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-send { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .btn-send:hover { opacity: 0.9; }
+        .btn-clear { background: rgba(255,255,255,0.08); color: #94a3b8; }
+        .btn-clear:hover { background: rgba(255,255,255,0.15); }
+        .announcement-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 10px;
             display: none;
         }
+        .announcement-status.success { display: block; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .announcement-status.error { display: block; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .announcement-status.loading { display: block; background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
+        
+        .goal-section {
+            background: #111827;
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .goal-section .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .goal-section .goal-title { font-size: 16px; font-weight: 600; }
+        .goal-section .goal-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .goal-stat {
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        .goal-stat .value { font-size: 20px; font-weight: 700; color: #f59e0b; }
+        .goal-stat .value.green { color: #10b981; }
+        .goal-stat .value.red { color: #ef4444; }
+        .goal-stat .label { font-size: 11px; color: #94a3b8; }
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: #1e293b;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0 6px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        .progress-fill.done { background: linear-gradient(90deg, #10b981, #059669); }
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .progress-labels .done { color: #10b981; font-weight: 600; }
+        
+        .chart-section {
+            background: #111827;
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .chart-section .chart-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+        .chart-wrapper { max-height: 220px; }
+        
+        .user-table {
+            background: #111827;
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .user-table .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .user-table .table-header h3 { font-size: 16px; font-weight: 600; }
+        .user-table .table-header .count {
+            font-size: 13px;
+            color: #94a3b8;
+            background: #1e293b;
+            padding: 3px 12px;
+            border-radius: 20px;
+        }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        table th {
+            text-align: left;
+            padding: 8px 10px;
+            color: #94a3b8;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #1e293b;
+        }
+        table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #1e293b;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+        table tr:hover td { background: #1e293b; }
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+            color: white;
+            margin-right: 6px;
+        }
+        .rank-badge { background: #f59e0b; color: #0a0e17; padding: 1px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .user-id-display { font-size: 11px; color: #64748b; font-family: monospace; }
+        
+        .messages-section {
+            background: #111827;
+            border-radius: 16px;
+            padding: 18px 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .messages-section .msg-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .messages-section .msg-header h3 { font-size: 16px; font-weight: 600; }
+        .messages-section .msg-header .count {
+            font-size: 13px;
+            color: #94a3b8;
+            background: #1e293b;
+            padding: 3px 12px;
+            border-radius: 20px;
+        }
+        .message-item {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            border-left: 3px solid #f59e0b;
+        }
+        .message-item .msg-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .message-item .msg-user { font-weight: 600; color: #f59e0b; font-size: 14px; }
+        .message-item .msg-user-id { font-size: 11px; color: #64748b; font-family: monospace; }
+        .message-item .msg-time { font-size: 11px; color: #64748b; }
+        .message-item .msg-text { font-size: 14px; color: #e2e8f0; }
+        .message-item .msg-reply-box { margin-top: 10px; }
+        .message-item .msg-reply-box textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-size: 13px;
+            min-height: 50px;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+        }
+        .message-item .msg-reply-box textarea:focus { border-color: #f59e0b; }
+        .message-item .msg-reply-box .reply-btns { display: flex; gap: 8px; margin-top: 6px; }
+        .message-item .msg-reply-box .reply-btns button {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-reply { background: #3b82f6; color: white; }
+        .btn-reply:hover { background: #2563eb; }
+        .btn-reply-sent { background: #10b981; color: white; cursor: default; }
+        .msg-reply {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #0f172a;
+            border-radius: 8px;
+            border-left: 2px solid #10b981;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        .msg-reply strong { color: #10b981; }
+        
+        .reward-section {
+            background: #111827;
+            border-radius: 16px;
+            padding: 18px 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .reward-section .reward-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .reward-section .reward-header h3 { font-size: 16px; font-weight: 600; }
+        .reward-section .reward-header .count { font-size: 13px; color: #94a3b8; background: #1e293b; padding: 3px 12px; border-radius: 20px; }
+        
+        .loading { text-align: center; padding: 30px 0; color: #64748b; }
+        .loading .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #1e293b;
+            border-top: 3px solid #f59e0b;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         @media (max-width: 768px) {
-            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+            .dashboard-layout { flex-direction: column; }
+            .sidebar { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 4px; padding: 12px; }
+            .sidebar .menu-item { text-align: center; font-size: 12px; padding: 8px 6px; }
+            .sidebar .menu-item .icon { display: block; margin: 0 0 4px 0; }
+            .sidebar .menu-item.logout-item { border-top: none; margin-top: 0; padding-top: 8px; }
+            .goal-section .goal-stats { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .header { flex-direction: column; align-items: stretch; gap: 8px; }
+            .header-right { justify-content: space-between; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .stat-card .value { font-size: 18px; }
             .goal-section .goal-stats { grid-template-columns: 1fr; }
             .announcement-section .announcement-actions { flex-direction: column; }
             .announcement-section .announcement-actions button { width: 100%; }
-        }
-        @media (max-width: 480px) {
-            body { padding: 12px; }
-            .header { flex-direction: column; gap: 12px; align-items: flex-start; }
-            .header-right { width: 100%; justify-content: space-between; }
-            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-            .stat-card { padding: 12px; }
-            .stat-card .value { font-size: 20px; }
-            .user-table { padding: 12px; }
-            table th, table td { padding: 6px 8px; font-size: 11px; }
         }
     </style>
 </head>
 <body>
     <div class="admin-container" id="adminContainer">
-        <!-- LOGIN SCREEN -->
+        
+        <!-- Login -->
         <div class="login-screen" id="loginScreen">
-            <div style="font-size: 48px; margin-bottom: 12px;">🔐</div>
+            <div style="font-size:48px; margin-bottom:12px;">🔐</div>
             <h2>Admin Login</h2>
-            <p>Enter your admin password to access the dashboard</p>
+            <p>Enter your admin password</p>
             <input type="password" id="adminPassword" placeholder="Enter password..." onkeydown="if(event.key==='Enter') login()">
             <button onclick="login()">Login</button>
-            <div class="error" id="loginError">❌ Incorrect password. Please try again.</div>
+            <div class="error" id="loginError">❌ Incorrect password.</div>
         </div>
         
-        <!-- DASHBOARD -->
+        <!-- Dashboard -->
         <div id="dashboardContent" style="display: none;">
+            
             <div class="header">
                 <h1>🏟️ ARENA Admin</h1>
                 <div class="header-right">
@@ -386,97 +480,121 @@
                 </div>
             </div>
             
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card">
-                    <div class="icon">👥</div>
-                    <div class="value" id="totalUsers">0</div>
-                    <div class="label">Total Users</div>
+            <div class="dashboard-layout">
+                <div class="sidebar">
+                    <button class="menu-item active" onclick="showTab('dashboard')"><span class="icon">📊</span> Dashboard</button>
+                    <button class="menu-item" onclick="showTab('users')"><span class="icon">👥</span> Users</button>
+                    <button class="menu-item" onclick="showTab('announcements')"><span class="icon">📢</span> Announce</button>
+                    <button class="menu-item" onclick="showTab('messages')"><span class="icon">💬</span> Inbox</button>
+                    <button class="menu-item" onclick="showTab('rewards')"><span class="icon">💰</span> Rewards</button>
+                    <button class="menu-item logout-item" onclick="logout()"><span class="icon">🚪</span> Logout</button>
                 </div>
-                <div class="stat-card">
-                    <div class="icon">👁️</div>
-                    <div class="value green" id="totalAds">0</div>
-                    <div class="label">Total Ads</div>
-                    <div class="sub-label">All Time</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">⭐</div>
-                    <div class="value blue" id="totalPoints">0</div>
-                    <div class="label">Total Points</div>
-                    <div class="sub-label">Given Out</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">📊</div>
-                    <div class="value purple" id="weeklyAds">0</div>
-                    <div class="label">Weekly Ads</div>
-                    <div class="sub-label">This Week</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">🎯</div>
-                    <div class="value red" id="goalProgress">0%</div>
-                    <div class="label">Goal Progress</div>
-                    <div class="sub-label">200,000/week</div>
-                </div>
-            </div>
-            
-            <div class="announcement-section">
-                <div class="announcement-header">
-                    <span class="announcement-title">📢 Send Announcement</span>
-                    <span style="font-size:12px; color:#64748b;">Message will be sent to all users</span>
-                </div>
-                <textarea id="announcementInput" placeholder="Type your announcement message here..."></textarea>
-                <div class="announcement-actions">
-                    <button class="btn-send" onclick="sendAnnouncement()">📤 Send to All Users</button>
-                    <button class="btn-clear" onclick="clearAnnouncement()">🗑️ Clear</button>
-                </div>
-                <div class="announcement-status" id="announcementStatus"></div>
-            </div>
-            
-            <div class="goal-section">
-                <div class="goal-header">
-                    <span class="goal-title">🎯 Weekly Goal Tracker</span>
-                    <span style="font-size:14px; color:#94a3b8;">Target: <strong style="color:#f59e0b;">200,000</strong> ads/week</span>
-                </div>
-                <div class="goal-stats">
-                    <div class="goal-stat">
-                        <div class="value" id="goalCurrent">0</div>
-                        <div class="label">Ads This Week</div>
+                
+                <div class="main-content">
+                    
+                    <!-- DASHBOARD TAB -->
+                    <div id="tabDashboard">
+                        <div class="stats-grid" id="statsGrid">
+                            <div class="stat-card"><div class="icon">👥</div><div class="value" id="totalUsers">0</div><div class="label">Total Users</div></div>
+                            <div class="stat-card"><div class="icon">👁️</div><div class="value green" id="totalAds">0</div><div class="label">Ads Watched</div><div class="sub-label">All Time</div></div>
+                            <div class="stat-card"><div class="icon">⭐</div><div class="value blue" id="totalPoints">0</div><div class="label">Points Given</div></div>
+                            <div class="stat-card"><div class="icon">🔗</div><div class="value purple" id="totalReferrals">0</div><div class="label">Total Referrals</div></div>
+                            <div class="stat-card"><div class="icon">💰</div><div class="value red" id="totalEarnings">$0</div><div class="label">Total Earnings</div></div>
+                        </div>
+                        
+                        <div class="goal-section">
+                            <div class="goal-header">
+                                <span class="goal-title">🎯 Weekly Goal Tracker</span>
+                                <span style="font-size:13px; color:#94a3b8;">Target: <strong style="color:#f59e0b;">200,000</strong> ads/week</span>
+                            </div>
+                            <div class="goal-stats">
+                                <div class="goal-stat"><div class="value" id="goalCurrent">0</div><div class="label">Ads This Week</div></div>
+                                <div class="goal-stat"><div class="value green" id="goalRemaining">200,000</div><div class="label">Remaining</div></div>
+                                <div class="goal-stat"><div class="value" id="goalDailyAvg">0</div><div class="label">Daily Average</div></div>
+                            </div>
+                            <div class="progress-track"><div class="progress-fill" id="goalProgressBar"></div></div>
+                            <div class="progress-labels">
+                                <span id="goalPercentLabel">0%</span>
+                                <span id="goalStatusLabel" style="color:#64748b;">🚀 Keep going!</span>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <div class="chart-title">📈 Ads Watched (Last 7 Days)</div>
+                            <div class="chart-wrapper"><canvas id="adsChart"></canvas></div>
+                        </div>
+                        
+                        <div class="user-table">
+                            <div class="table-header"><h3>👤 Recent Users</h3><span class="count" id="userCount">0 users</span></div>
+                            <div class="table-wrapper"><div id="userList"><div class="loading"><div class="spinner"></div>Loading users...</div></div></div>
+                        </div>
                     </div>
-                    <div class="goal-stat">
-                        <div class="value green" id="goalRemaining">200,000</div>
-                        <div class="label">Remaining</div>
+                    
+                    <!-- USERS TAB -->
+                    <div id="tabUsers" style="display: none;">
+                        <div class="user-table">
+                            <div class="table-header"><h3>👤 All Users</h3><span class="count" id="userCount2">0 users</span></div>
+                            <div class="table-wrapper"><div id="userList2"><div class="loading"><div class="spinner"></div>Loading users...</div></div></div>
+                        </div>
                     </div>
-                    <div class="goal-stat">
-                        <div class="value" id="goalDailyAvg">0</div>
-                        <div class="label">Daily Average</div>
+                    
+                    <!-- ANNOUNCEMENTS TAB -->
+                    <div id="tabAnnouncements" style="display: none;">
+                        <div class="announcement-section">
+                            <div class="announcement-header">
+                                <span class="announcement-title">📢 Send Announcement</span>
+                                <span style="font-size:12px; color:#64748b;">Message sent to all users</span>
+                            </div>
+                            <textarea id="announcementInput" placeholder="Type your announcement..."></textarea>
+                            <div class="announcement-actions">
+                                <button class="btn-send" onclick="sendAnnouncement()">📤 Send to All</button>
+                                <button class="btn-clear" onclick="clearAnnouncement()">🗑️ Clear</button>
+                            </div>
+                            <div class="announcement-status" id="announcementStatus"></div>
+                        </div>
                     </div>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" id="goalProgressBar"></div>
-                </div>
-                <div class="progress-labels">
-                    <span id="goalPercentLabel">0%</span>
-                    <span id="goalStatusLabel" style="color:#64748b;">🚀 Keep going!</span>
-                </div>
-            </div>
-            
-            <div class="user-table">
-                <div class="table-header">
-                    <h3>👤 Recent Users</h3>
-                    <span class="count" id="userCount">0 users</span>
-                </div>
-                <div class="table-wrapper">
-                    <div id="userList">
-                        <div class="loading"><div class="spinner"></div>Loading users...</div>
+                    
+                    <!-- MESSAGES / INBOX TAB -->
+                    <div id="tabMessages" style="display: none;">
+                        <div class="messages-section">
+                            <div class="msg-header">
+                                <h3>💬 User Messages</h3>
+                                <span class="count" id="msgCount">0 messages</span>
+                            </div>
+                            <div id="messageList">
+                                <div class="loading"><div class="spinner"></div>Loading messages...</div>
+                            </div>
+                        </div>
                     </div>
+                    
+                    <!-- REWARDS TAB -->
+                    <div id="tabRewards" style="display: none;">
+                        <div class="reward-section">
+                            <div class="reward-header">
+                                <h3>💰 Weekly Rewards</h3>
+                                <span style="font-size:13px; color:#94a3b8;">Top 20 users share <strong style="color:#10b981;">$20</strong></span>
+                            </div>
+                            <div style="margin-bottom:12px; font-size:14px; color:#94a3b8;">
+                                📊 <span id="rewardWeek">Loading...</span>
+                            </div>
+                            <div id="rewardList">
+                                <div class="loading"><div class="spinner"></div>Loading rewards...</div>
+                            </div>
+                            <div style="margin-top:12px; padding:12px; background:#1e293b; border-radius:10px;">
+                                <div style="font-size:13px; color:#94a3b8; text-align:center;">
+                                    🏆 <strong style="color:#f59e0b;">1st place:</strong> $4 (10,000+ ads) 
+                                    | <strong style="color:#10b981;">2nd-20th:</strong> $1 each (5,000+ ads)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // ============================================================
-        // 🔥 FIREBASE CONFIG - YOUR NEW CONFIG
-        // ============================================================
         var firebaseConfig = {
             apiKey: "AIzaSyA-2MtPZhZt9Oewn4V6AlBiS7TKMPdEatI",
             authDomain: "ads-arena-new.firebaseapp.com",
@@ -486,30 +604,25 @@
             appId: "1:840454017440:web:6188686fa96a1d28a414c5"
         };
         
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         var db = firebase.firestore();
         
-        // ============================================================
-        // 🔐 ADMIN PASSWORD
-        // ============================================================
         var ADMIN_PASSWORD = "password123";
         var WEEKLY_GOAL = 200000;
+        var chartInstance = null;
+        var allUserData = [];
+        var allMessages = [];
         
-        // ============================================================
-        // 🔑 LOGIN
-        // ============================================================
         function login() {
             var password = document.getElementById('adminPassword').value;
             var errorEl = document.getElementById('loginError');
-            
             if (password === ADMIN_PASSWORD) {
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('dashboardContent').style.display = 'block';
                 loadAllData();
                 updateTime();
                 setInterval(updateTime, 1000);
-                setInterval(loadAllData, 30000);
+                setInterval(loadAllData, 60000);
             } else {
                 errorEl.style.display = 'block';
                 document.getElementById('adminPassword').value = '';
@@ -527,67 +640,84 @@
             document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
         }
         
-        // ============================================================
-        // 📢 SEND ANNOUNCEMENT
-        // ============================================================
+        function showTab(tab) {
+            var tabs = ['dashboard', 'users', 'announcements', 'messages', 'rewards'];
+            var tabMap = {
+                'dashboard': 'tabDashboard',
+                'users': 'tabUsers',
+                'announcements': 'tabAnnouncements',
+                'messages': 'tabMessages',
+                'rewards': 'tabRewards'
+            };
+            
+            tabs.forEach(function(t) {
+                var el = document.getElementById(tabMap[t]);
+                if (el) el.style.display = 'none';
+            });
+            var target = document.getElementById(tabMap[tab]);
+            if (target) target.style.display = 'block';
+            
+            var items = document.querySelectorAll('.sidebar .menu-item');
+            items.forEach(function(item) {
+                item.classList.remove('active');
+            });
+            var activeItem = document.querySelector('.sidebar .menu-item[data-tab="' + tab + '"]');
+            if (activeItem) activeItem.classList.add('active');
+            
+            if (tab === 'messages') loadMessages();
+            if (tab === 'rewards') loadRewards();
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            var menuItems = document.querySelectorAll('.sidebar .menu-item');
+            var tabs = ['dashboard', 'users', 'announcements', 'messages', 'rewards'];
+            menuItems.forEach(function(item, index) {
+                if (index < tabs.length) {
+                    item.setAttribute('data-tab', tabs[index]);
+                }
+            });
+        });
+        
+        // ===== SEND ANNOUNCEMENT =====
         async function sendAnnouncement() {
             var message = document.getElementById('announcementInput').value.trim();
             var statusEl = document.getElementById('announcementStatus');
-            
             if (!message) {
                 statusEl.className = 'announcement-status error';
                 statusEl.textContent = '❌ Please enter a message.';
                 return;
             }
-            
             statusEl.className = 'announcement-status loading';
-            statusEl.textContent = '📤 Sending announcement to all users...';
-            
+            statusEl.textContent = '📤 Sending...';
             try {
                 var snapshot = await db.collection('users').get();
                 var users = [];
-                snapshot.forEach(function(doc) {
-                    users.push({
-                        id: doc.id,
-                        data: doc.data()
-                    });
-                });
-                
+                snapshot.forEach(function(doc) { users.push(doc.id); });
                 if (users.length === 0) {
                     statusEl.className = 'announcement-status error';
-                    statusEl.textContent = '❌ No users found. Share your app first!';
+                    statusEl.textContent = '❌ No users found.';
                     return;
                 }
-                
-                var announcement = {
-                    message: message,
-                    timestamp: new Date().toISOString(),
-                    read: false
-                };
-                
+                var announcement = { message: message, timestamp: new Date().toISOString(), read: false };
                 var batch = db.batch();
-                users.forEach(function(user) {
-                    var userRef = db.collection('users').doc(user.id);
+                users.forEach(function(userId) {
+                    var userRef = db.collection('users').doc(userId);
                     batch.update(userRef, {
                         'announcements': firebase.firestore.FieldValue.arrayUnion(announcement)
                     });
                 });
                 await batch.commit();
-                
                 await db.collection('announcements').add({
                     message: message,
                     sentBy: 'Admin',
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     totalUsers: users.length
                 });
-                
                 statusEl.className = 'announcement-status success';
-                statusEl.textContent = '✅ Announcement sent to ' + users.length + ' users!';
+                statusEl.textContent = '✅ Sent to ' + users.length + ' users!';
                 document.getElementById('announcementInput').value = '';
                 setTimeout(loadAllData, 2000);
-                
             } catch (error) {
-                console.error('Error sending announcement:', error);
                 statusEl.className = 'announcement-status error';
                 statusEl.textContent = '❌ Error: ' + error.message;
             }
@@ -599,9 +729,173 @@
             document.getElementById('announcementStatus').style.display = 'none';
         }
         
-        // ============================================================
-        // 📊 LOAD ALL DATA
-        // ============================================================
+        // ===== LOAD MESSAGES =====
+        async function loadMessages() {
+            try {
+                var snapshot = await db.collection('messages')
+                    .orderBy('timestamp', 'desc')
+                    .get();
+                
+                var listEl = document.getElementById('messageList');
+                allMessages = [];
+                snapshot.forEach(function(doc) {
+                    var data = doc.data();
+                    data.id = doc.id;
+                    allMessages.push(data);
+                });
+                
+                document.getElementById('msgCount').textContent = allMessages.length + ' messages';
+                
+                if (allMessages.length === 0) {
+                    listEl.innerHTML = '<div class="loading"><div style="font-size:48px; margin-bottom:12px;">📭</div>No messages from users yet.</div>';
+                    return;
+                }
+                
+                var html = '';
+                allMessages.forEach(function(msg) {
+                    var time = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleString() : 'Just now';
+                    var replied = msg.replied || false;
+                    var replyText = msg.reply || '';
+                    
+                    html += '<div class="message-item">';
+                    html += '<div class="msg-top"><span class="msg-user">👤 ' + (msg.userName || 'Unknown') + '</span><span class="msg-user-id">🆔 ' + (msg.userTelegramId || msg.userId || 'N/A') + '</span><span class="msg-time">' + time + '</span></div>';
+                    html += '<div class="msg-text">' + msg.message + '</div>';
+                    html += '<div class="msg-reply-box" id="replyBox_' + msg.id + '">';
+                    
+                    if (replyText) {
+                        html += '<div class="msg-reply"><strong>📩 Admin Reply:</strong> ' + replyText + '</div>';
+                    }
+                    
+                    html += '<textarea id="replyText_' + msg.id + '" placeholder="Type your reply..."></textarea>';
+                    html += '<div class="reply-btns">';
+                    if (replyText) {
+                        html += '<button class="btn-reply-sent">✅ Replied</button>';
+                    } else {
+                        html += '<button class="btn-reply" onclick="sendReply(\'' + msg.id + '\', \'' + msg.userId + '\')">📤 Send Reply</button>';
+                    }
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+                
+                listEl.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                document.getElementById('messageList').innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">⚠️ Error loading messages</div>';
+            }
+        }
+        
+        // ===== SEND REPLY =====
+        async function sendReply(msgId, userId) {
+            var replyText = document.getElementById('replyText_' + msgId).value.trim();
+            if (!replyText) {
+                alert('Please enter a reply.');
+                return;
+            }
+            try {
+                await db.collection('messages').doc(msgId).update({
+                    reply: replyText,
+                    replied: true,
+                    replyTimestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                var userRef = db.collection('users').doc(userId);
+                await userRef.update({
+                    'replies': firebase.firestore.FieldValue.arrayUnion({
+                        messageId: msgId,
+                        reply: replyText,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                alert('✅ Reply sent successfully!');
+                loadMessages();
+            } catch (error) {
+                console.error('Error sending reply:', error);
+                alert('❌ Error sending reply: ' + error.message);
+            }
+        }
+        
+        // ===== LOAD REWARDS =====
+        async function loadRewards() {
+            try {
+                var weekKey = getWeekKey();
+                document.getElementById('rewardWeek').textContent = 'Week of ' + weekKey;
+                
+                var snapshot = await db.collection('users')
+                    .orderBy('points', 'desc')
+                    .get();
+                
+                var users = [];
+                snapshot.forEach(function(doc) {
+                    var data = doc.data();
+                    var weeklyAds = data.weeklyAds || {};
+                    var weekAds = weeklyAds[weekKey] || 0;
+                    users.push({
+                        id: doc.id,
+                        name: data.displayName || 'Player',
+                        points: data.points || 0,
+                        weeklyAds: weekAds,
+                        allTimeAds: data.allTimeAds || 0
+                    });
+                });
+                
+                users.sort(function(a, b) { return b.weeklyAds - a.weeklyAds; });
+                var top20 = users.slice(0, 20);
+                
+                var listEl = document.getElementById('rewardList');
+                if (top20.length === 0) {
+                    listEl.innerHTML = '<div class="loading"><div style="font-size:48px; margin-bottom:12px;">💰</div>No users yet. Rewards will be calculated weekly.</div>';
+                    return;
+                }
+                
+                var html = '<div style="margin-bottom:12px; font-size:13px; color:#94a3b8;">🏆 Top 20 users this week:</div>';
+                html += '<div class="user-table" style="padding:0; background:transparent; border:none;">';
+                html += '<div class="table-wrapper"><table><thead><tr><th>Rank</th><th>User</th><th>User ID</th><th>Weekly Ads</th><th>Reward</th></tr></thead><tbody>';
+                
+                var firstPlaceReward = 4;
+                var remainingReward = 16;
+                var remainingUsers = top20.length - 1;
+                var sharePerUser = remainingUsers > 0 ? (remainingReward / remainingUsers) : 0;
+                
+                top20.forEach(function(user, index) {
+                    var rank = index + 1;
+                    var reward = 0;
+                    var medal = '';
+                    var eligible = false;
+                    
+                    if (rank === 1 && user.weeklyAds >= 10000) {
+                        reward = firstPlaceReward;
+                        medal = '🥇';
+                        eligible = true;
+                    } else if (rank <= 20 && user.weeklyAds >= 5000) {
+                        reward = sharePerUser;
+                        medal = rank <= 5 ? '🏅' : '•';
+                        eligible = true;
+                    } else {
+                        medal = rank <= 5 ? '🏅' : '•';
+                    }
+                    
+                    var rewardDisplay = eligible ? '$' + reward.toFixed(2) : '⏳';
+                    var userIdDisplay = user.id.substring(0, 8) + '...';
+                    
+                    html += '<tr><td>' + medal + ' #' + rank + '</td><td>' + user.name + (rank === 1 ? ' 👑' : '') + '</td><td><span class="user-id-display">' + userIdDisplay + '</span></td><td>' + user.weeklyAds.toLocaleString() + '</td><td>' + rewardDisplay + '</td></tr>';
+                });
+                
+                html += '</tbody></table></div></div>';
+                html += '<div style="margin-top:12px; padding:12px; background:#1e293b; border-radius:10px; text-align:center;">';
+                html += '<div style="font-size:14px; color:#94a3b8;">📊 <strong style="color:#f59e0b;">1st:</strong> $4 (10,000+ ads) | <strong style="color:#10b981;">2nd-20th:</strong> $1 each (5,000+ ads)</div>';
+                html += '<div style="font-size:12px; color:#64748b; margin-top:4px;">⏰ Payouts within 5-24 hours after week ends</div>';
+                html += '</div>';
+                
+                listEl.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading rewards:', error);
+                document.getElementById('rewardList').innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">⚠️ Error loading rewards</div>';
+            }
+        }
+        
+        // ===== LOAD ALL DATA =====
         async function loadAllData() {
             try {
                 console.log('📊 Loading admin data...');
@@ -610,24 +904,24 @@
                 var totalUsers = 0;
                 var totalAds = 0;
                 var totalPoints = 0;
+                var totalRefs = 0;
                 var weeklyTotal = 0;
                 var weekKey = getWeekKey();
                 var userData = [];
+                var dailyData = {};
+                var todayKey = new Date().toISOString().split('T')[0];
                 
                 snapshot.forEach(function(doc) {
                     var data = doc.data();
                     totalUsers++;
                     totalAds += data.allTimeAds || 0;
                     totalPoints += data.points || 0;
-                    
+                    totalRefs += data.totalReferrals || 0;
                     var weeklyAds = data.weeklyAds || {};
                     var userWeekly = weeklyAds[weekKey] || 0;
                     weeklyTotal += userWeekly;
-                    
                     var dailyAds = data.dailyAds || {};
-                    var todayKey = new Date().toISOString().split('T')[0];
                     var todayCount = dailyAds[todayKey] || 0;
-                    
                     userData.push({
                         id: doc.id,
                         displayName: data.displayName || 'Player',
@@ -636,32 +930,37 @@
                         today: todayCount,
                         points: data.points || 0,
                         rank: data.rank || '--',
-                        createdAt: data.createdAt,
-                        announcements: data.announcements || []
+                        createdAt: data.createdAt
                     });
+                    for (var key in dailyAds) {
+                        if (dailyData[key]) {
+                            dailyData[key] += dailyAds[key];
+                        } else {
+                            dailyData[key] = dailyAds[key];
+                        }
+                    }
                 });
                 
                 userData.sort(function(a, b) { return b.points - a.points; });
+                allUserData = userData;
                 
                 document.getElementById('totalUsers').textContent = totalUsers;
                 document.getElementById('totalAds').textContent = totalAds;
                 document.getElementById('totalPoints').textContent = totalPoints.toLocaleString();
-                document.getElementById('weeklyAds').textContent = weeklyTotal;
+                document.getElementById('totalReferrals').textContent = totalRefs;
+                document.getElementById('totalEarnings').textContent = '$' + (totalAds * 0.005).toFixed(2);
                 
                 var progressPercent = Math.min((weeklyTotal / WEEKLY_GOAL) * 100, 100);
-                document.getElementById('goalProgress').textContent = Math.round(progressPercent) + '%';
                 document.getElementById('goalCurrent').textContent = weeklyTotal;
                 document.getElementById('goalRemaining').textContent = Math.max(WEEKLY_GOAL - weeklyTotal, 0).toLocaleString();
-                
                 var dayOfWeek = new Date().getDay() + 1;
                 var avg = Math.round(weeklyTotal / dayOfWeek) || 0;
                 document.getElementById('goalDailyAvg').textContent = avg;
-                
                 var bar = document.getElementById('goalProgressBar');
                 bar.style.width = progressPercent + '%';
                 if (progressPercent >= 100) {
                     bar.className = 'progress-fill done';
-                    document.getElementById('goalStatusLabel').textContent = '🎉 GOAL REACHED! Amazing!';
+                    document.getElementById('goalStatusLabel').textContent = '🎉 GOAL REACHED!';
                     document.getElementById('goalStatusLabel').className = 'progress-labels done';
                 } else {
                     bar.className = 'progress-fill';
@@ -670,44 +969,90 @@
                 }
                 document.getElementById('goalPercentLabel').textContent = Math.round(progressPercent) + '%';
                 
-                var html = '<table><thead><tr><th>User</th><th>Today</th><th>Weekly</th><th>Total Ads</th><th>Points</th><th>Rank</th><th>Announcements</th></tr></thead><tbody>';
-                
-                var count = 0;
-                userData.forEach(function(user) {
-                    count++;
-                    var firstLetter = user.displayName.charAt(0).toUpperCase();
-                    var annCount = user.announcements ? user.announcements.length : 0;
-                    var annUnread = user.announcements ? user.announcements.filter(function(a) { return !a.read; }).length : 0;
-                    var annDisplay = annCount > 0 ? annCount + ' (' + annUnread + ' unread)' : '0';
-                    
-                    html += '<tr><td><span class="user-avatar">' + firstLetter + '</span>' + user.displayName + '</td><td>' + user.today + '</td><td>' + user.weekly + '</td><td>' + user.ads + '</td><td style="color:#f59e0b; font-weight:600;">' + user.points.toLocaleString() + '</td><td><span class="rank-badge">#' + user.rank + '</span></td><td>' + annDisplay + '</td></tr>';
-                });
-                
-                html += '</tbody></table>';
-                
-                if (count === 0) {
-                    html = '<div class="loading"><div style="font-size:48px; margin-bottom:12px;">👀</div>No users yet.<br>Share your app to get started!</div>';
-                }
-                
-                document.getElementById('userList').innerHTML = html;
-                document.getElementById('userCount').textContent = count + ' users';
-                console.log('✅ Admin data loaded:', { totalUsers, totalAds, totalPoints, weeklyTotal });
-                
+                updateChart(dailyData);
+                renderUserTable('userList', userData, 'userCount');
+                renderUserTable('userList2', userData, 'userCount2');
+                console.log('✅ Admin data loaded');
             } catch (error) {
-                console.error('Error loading admin data:', error);
-                document.getElementById('userList').innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">⚠️ Error loading data: ' + error.message + '</div>';
+                console.error('Error:', error);
+                document.getElementById('userList').innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">⚠️ Error: ' + error.message + '</div>';
+                document.getElementById('userList2').innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">⚠️ Error: ' + error.message + '</div>';
             }
         }
         
-        // ============================================================
-        // 📅 GET WEEK KEY
-        // ============================================================
+        function renderUserTable(elementId, userData, countId) {
+            var el = document.getElementById(elementId);
+            if (userData.length === 0) {
+                el.innerHTML = '<div class="loading"><div style="font-size:48px; margin-bottom:12px;">👀</div>No users yet.</div>';
+                if (countId) document.getElementById(countId).textContent = '0 users';
+                return;
+            }
+            var html = '<table><thead><tr><th>User</th><th>User ID</th><th>Today</th><th>Weekly</th><th>Total Ads</th><th>Points</th><th>Rank</th></tr></thead><tbody>';
+            userData.forEach(function(user) {
+                var firstLetter = user.displayName.charAt(0).toUpperCase();
+                var userIdDisplay = user.id.substring(0, 8) + '...';
+                html += '<tr><td><span class="user-avatar">' + firstLetter + '</span>' + user.displayName + '</td><td><span class="user-id-display">' + userIdDisplay + '</span></td><td>' + user.today + '</td><td>' + user.weekly + '</td><td>' + user.ads + '</td><td style="color:#f59e0b; font-weight:600;">' + user.points.toLocaleString() + '</td><td><span class="rank-badge">#' + user.rank + '</span></td></tr>';
+            });
+            html += '</tbody></table>';
+            el.innerHTML = html;
+            if (countId) document.getElementById(countId).textContent = userData.length + ' users';
+        }
+        
+        function updateChart(dailyData) {
+            var ctx = document.getElementById('adsChart').getContext('2d');
+            var labels = [];
+            var values = [];
+            var now = new Date();
+            for (var i = 6; i >= 0; i--) {
+                var date = new Date(now);
+                date.setDate(date.getDate() - i);
+                var key = date.toISOString().split('T')[0];
+                var display = (date.getMonth() + 1) + '/' + date.getDate();
+                labels.push(display);
+                values.push(dailyData[key] || 0);
+            }
+            if (chartInstance) { chartInstance.destroy(); }
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ads Watched',
+                        data: values,
+                        backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                        borderColor: '#f59e0b',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+        
         function getWeekKey() {
             var now = new Date();
             var startOfWeek = new Date(now);
             startOfWeek.setDate(now.getDate() - now.getDay());
             return startOfWeek.toISOString().split('T')[0];
         }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            var menuItems = document.querySelectorAll('.sidebar .menu-item');
+            var tabs = ['dashboard', 'users', 'announcements', 'messages', 'rewards'];
+            menuItems.forEach(function(item, index) {
+                if (index < tabs.length) {
+                    item.setAttribute('data-tab', tabs[index]);
+                }
+            });
+        });
     </script>
 </body>
 </html>
